@@ -29,3 +29,4 @@ echo To run the game:
 echo   call scripts\run_arena.bat
 echo.
 pause
+

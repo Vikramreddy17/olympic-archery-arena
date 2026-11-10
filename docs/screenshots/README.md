@@ -9,3 +9,4 @@ This directory contains visual assets and interface previews used in the project
 | [`03_leaderboard_hall.svg`](03_leaderboard_hall.svg) | Hall of Fame leaderboard with difficulty filters and session records |
 
 > **Tip:** If you take real photos of your projection wall or screenshots from your browser/projector, you can save them as PNGs in this directory (`welcome.png`, `gameplay.png`, `leaderboard.png`, etc.) and link them directly in the root `README.md`.
+

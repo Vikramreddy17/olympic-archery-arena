@@ -12,3 +12,4 @@ if exist .venv\Scripts\activate.bat (
 
 python lidar_ld19.py
 pause
+
