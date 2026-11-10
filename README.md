@@ -46,43 +46,206 @@ The system features real-time projectile/touch detection using an **LD19 LiDAR s
 
 ---
 
-## 🏛️ System Architecture
+## 📊 Detailed System & Architecture Diagrams
+
+### 1. Overall System Architecture & Data Pipeline
+The diagram below illustrates how raw laser measurements from the physical LiDAR hardware pass through mathematical filtering, clustering, and UDP delivery into the Flask API and HTML5 Canvas frontend.
 
 ```mermaid
 flowchart TD
-    subgraph Physical Installation
+    subgraph Physical Installation ["🏟️ Physical Projection Wall Environment"]
         LIDAR["📡 LD19 LiDAR Sensor<br/>(COM Port / 230,400 baud)"]
         PROJ["📽️ Projector Wall<br/>(149 in × 80 in Active Field)"]
+        ATHLETE["🏹 Athlete / Projectile Impact"]
     end
 
-    subgraph Hardware Layer ["Python Hardware Controller (lidar_ld19.py)"]
+    subgraph Hardware Layer ["🐍 Python Sensor Engine (lidar_ld19.py)"]
         PARSE["CRC8 Validator & Packet Parser"]
-        BG["Background Filtering & Neighbor Check"]
-        CLUSTER["Cluster Detection & Tracking"]
-        COORD["Coordinate Normalization (0.0 to 1.0)"]
+        BG["Adaptive Background Subtraction"]
+        CLUSTER["DBSCAN Cluster Centroid Tracker"]
+        COORD["Coordinate Normalizer (0.0 to 1.0)"]
     end
 
-    subgraph Web Server ["Flask Backend (app.py)"]
-        UDP["UDP Listener (Port 5005)"]
-        API["REST API Endpoints (/api/...)"]
-        DB[(SQLite DB: archery.db)]
+    subgraph Server Layer ["🌐 Flask Web Server (app.py)"]
+        UDP["UDP Socket Listener (Port 5005)"]
+        RING["Thread-Safe In-Memory Ring Buffer"]
+        API["JSON REST API Endpoints (/api/...)"]
+        DB[(🗄️ SQLite Database: archery.db)]
     end
 
-    subgraph Client Application ["Browser Frontend"]
-        CANVAS["HTML5 Canvas Arena Engine (game.js)"]
+    subgraph Client Layer ["💻 Browser Frontend (HTML5 Canvas + Web Audio)"]
+        POLL["Real-Time Event Poller (/api/input-events)"]
+        STAGE["Adaptive Canvas Renderer (game.js)"]
         AUDIO["Web Audio Procedural Synthesizer"]
-        TOUCH["Touch / Mouse Pointer Fallback"]
+        FALLBACK["Direct Mouse / Touch Input Fallback"]
     end
 
-    LIDAR -->|Serial Data| PARSE
+    ATHLETE -->|Crosses Laser Plane| LIDAR
+    LIDAR -->|Raw 47-Byte Telemetry Packets| PARSE
     PARSE --> BG --> CLUSTER --> COORD
-    COORD -->|UDP Packets| UDP
-    UDP --> API
-    TOUCH --> CANVAS
-    API <-->|Leaderboard & Events| CANVAS
-    API <--> DB
-    CANVAS --> AUDIO
-    CANVAS -.->|Projected onto| PROJ
+    COORD -->|JSON Datagrams via UDP| UDP
+    UDP --> RING --> API
+    API <-->|REST Polling & Score Submission| POLL
+    POLL --> STAGE
+    FALLBACK --> STAGE
+    STAGE --> AUDIO
+    STAGE -.->|Rendered & Projected onto| PROJ
+    API <-->|Score Storage & Leaderboard Queries| DB
+```
+
+---
+
+### 2. Tournament Lifecycle & Gameplay State Machine
+From the welcome screen to difficulty selection, practice rounds, live tournament scoring, and podium celebrations:
+
+```mermaid
+stateDiagram-v2
+    [*] --> WelcomeScreen: Application Launch
+    
+    WelcomeScreen --> AthleteRegistration: Click "Start Challenge"
+    WelcomeScreen --> HallOfFame: Click "Hall of Fame"
+    
+    AthleteRegistration --> DifficultySelection: Enter Valid Name (1-24 chars)
+    DifficultySelection --> PracticeMode: Select Rookie / Contender / Champion
+    
+    state PracticeMode {
+        [*] --> PracticeTarget
+        PracticeTarget --> PracticeFeedback: 3 Warm-Up Shots
+        PracticeFeedback --> [*]: Ready for Tournament
+    }
+    
+    PracticeMode --> Target1: Start Official Match
+    
+    state TournamentMatch {
+        state "Target 1 (Left Active)" as Target1 {
+            [*] --> T1_Countdown: 3-Second Ready Count
+            T1_Countdown --> T1_Live: 10s Timer per Shot
+            T1_Live --> T1_Live: Record 4 Shots
+            T1_Live --> [*]: Best 3 Counted
+        }
+        
+        state "Target 2 (Center Active)" as Target2 {
+            [*] --> T2_Countdown: 3-Second Ready Count
+            T2_Countdown --> T2_Live: 10s Timer per Shot
+            T2_Live --> T2_Live: Record 4 Shots
+            T2_Live --> [*]: Best 3 Counted
+        }
+        
+        state "Target 3 (Right Active)" as Target3 {
+            [*] --> T3_Countdown: 3-Second Ready Count
+            T3_Countdown --> T3_Live: 10s Timer per Shot
+            T3_Live --> T3_Live: Record 4 Shots
+            T3_Live --> [*]: Best 3 Counted
+        }
+        
+        Target1 --> Target2: Smooth Camera & Target Layout Transition
+        Target2 --> Target3: Smooth Camera & Target Layout Transition
+    }
+    
+    Target3 --> OlympicScoringEngine: 12 Shots Complete
+    
+    state OlympicScoringEngine {
+        [*] --> DropLowest: Drop Lowest Shot per Target
+        DropLowest --> SumBestNine: Sum Best 3 per Target (Max 90 Pts)
+        SumBestNine --> AccuracyCalc: Calculate Hit Rate & 10s Count
+        AccuracyCalc --> [*]
+    }
+    
+    OlympicScoringEngine --> PodiumResults: POST /api/score
+    PodiumResults --> HallOfFame: View Global Standings
+    PodiumResults --> WelcomeScreen: Play Again
+    HallOfFame --> WelcomeScreen: Back to Stadium
+```
+
+---
+
+### 3. Shot Impact Detection & Low-Latency Event Sequence
+How an arrow impact is detected, parsed, mapped to target rings, scored, and accompanied by procedural audio in under 20 milliseconds:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Athlete as 🏹 Athlete / Projectile
+    participant Wall as 📽️ Projection Wall (149" × 80")
+    participant LiDAR as 📡 LD19 LiDAR Sensor (COM7)
+    participant Driver as 🐍 Python Driver (lidar_ld19.py)
+    participant Server as 🌐 Flask App (app.py :5005)
+    participant Client as 🎯 Game Client (game.js)
+    participant Synth as 🔊 Web Audio Synthesizer
+
+    Athlete->>Wall: Arrow hits target ring
+    Wall-->>LiDAR: Projectile intersects 360° laser sweep
+    LiDAR->>Driver: Transmit 47-byte serial data @ 230,400 baud
+    Driver->>Driver: Verify CRC8 checksum & filter static background
+    Driver->>Driver: Calculate cluster centroid & normalize coordinates (0.0 - 1.0)
+    Driver->>Server: UDP Datagram: {"type": "down", "x_norm": 0.502, "y_norm": 0.498}
+    Server->>Server: Sequence packet & insert into thread-safe buffer
+    Client->>Server: GET /api/input-events?after=seq
+    Server-->>Client: 200 OK [{"seq": 104, "x": 0.502, "y": 0.498}]
+    Client->>Client: Transform normalized coords into dynamic stage pixels
+    Client->>Client: Calculate distance to active target center (Score 10, 9, 8... 0)
+    par Visual & Audio Feedback
+        Client->>Synth: Trigger procedural hit sound & bullseye fanfare
+        Client->>Client: Render arrow puncture, ripple rings & score popup (+10)
+    end
+    Client->>Client: Update Live HUD Score & Target Slots (Best 3 of 4)
+```
+
+---
+
+### 4. Interactive Wall & LiDAR Physical Calibration Geometry
+The coordinate transformation pipeline maps physical inches into normalized unit floats and then into responsive canvas coordinates:
+
+```text
+  +---------------------------------------------------------------------------------+
+  |<-- 4" -->|                          141" ACTIVE ZONE                 |<-- 4" -->|
+  | Deadzone |                                                           | Deadzone |
+  | (Left)   |                                                           | (Right)  |
+  +----------+-----------------------------------------------------------+----------+ (Y = 80" Top)
+  |          |                                                           |          |
+  |          |        [Target 1]             [Target 2]        [Target 3]|          |
+  |          |                                (Active)                   |          |
+  |          |                                                           |          |
+  |          |                        · (X_norm, Y_norm)                 |          |
+  |          |                          Impact Point                     |          |
+  |          |                                                           |          |
+  |          |================== Laser Scan Sweep Line ==================|          | (Y = 38" Sensor)
+  |          |                            📡                             |          |
+  |          |                     LD19 LiDAR (COM7)                     |          |
+  +----------+-----------------------------------------------------------+----------+ (Y = 0" Floor)
+  |<---------------------------------- 149" --------------------------------------->|
+```
+
+| Parameter | Physical Value | Metric Value | Normalized Range | Description |
+|---|---|---|---|---|
+| **Wall Width** | `149.0 inches` | `3784.6 mm` | `0.00` to `1.00` | Full physical projection width |
+| **Wall Height** | `80.0 inches` | `2032.0 mm` | `0.00` to `1.00` | Full physical projection height |
+| **Dead Zones** | `4.0 inches` each | `101.6 mm` | `x < 0.027`, `x > 0.973` | Margins ignored to prevent frame reflections |
+| **Active Width** | `141.0 inches` | `3581.4 mm` | Active scoring area | Usable projectile detection plane |
+| **LiDAR Height** | `38.0 inches` | `965.2 mm` | Center baseline | Default physical sensor elevation from floor |
+| **Viewer PPI** | `10 px / inch` | — | `1490 × 800 px` | Internal calibration viewer resolution |
+
+---
+
+### 5. Database Entity Relationship Diagram (SQLite WAL)
+The database tracks individual sessions, detailed round-by-round shot telemetry, and leaderboard rankings:
+
+```mermaid
+erDiagram
+    SCORES {
+        INTEGER id PK "Auto-incrementing primary key"
+        TEXT player "Athlete name (1 to 24 characters)"
+        TEXT level "Difficulty: easy | medium | hard"
+        INTEGER total "Sum of best 3 shots per target (0 to 90)"
+        REAL accuracy "Hit percentage across all 12 shots (0.0 to 100.0%)"
+        INTEGER tens "Count of perfect 10-ring bullseyes"
+        TEXT shots_json "Full 3x4 round shots array in JSON"
+        TEXT created_at "ISO-8601 UTC timestamp"
+    }
+
+    INDEXES {
+        idx_scores "INDEX on (level, total DESC, tens DESC)"
+    }
 ```
 
 ---
@@ -90,7 +253,7 @@ flowchart TD
 ## 📸 Interface Showcase
 
 ### 1. Stadium Hero & Registration
-> The entry portal featuring difficulty selection (Rookie, Contender, Champion), practice mode, and session setup.
+> The tournament landing screen featuring difficulty selection (Rookie, Contender, Champion), practice mode, and session setup.
 ![Hero Screen](docs/screenshots/01_welcome_hero.svg)
 
 ---
@@ -118,7 +281,7 @@ olympic_archery/
 ├── .env.example             # Template for configuration & admin security PIN
 ├── .gitignore               # Clean ignore list (virtual environments, databases, cache)
 ├── LICENSE                  # MIT Open Source License
-├── README.md                # Project documentation
+├── README.md                # Project documentation with detailed diagrams
 │
 ├── static/
 │   ├── game.js              # Complete stadium simulation, canvas renderer & audio engine
@@ -161,8 +324,8 @@ olympic_archery/
 
 1. **Clone or navigate to the repository**:
    ```bash
-   git clone <REPO_URL>
-   cd olympic_archery
+   git clone https://github.com/Vikramreddy17/olympic-archery-arena.git
+   cd olympic-archery-arena
    ```
 
 2. **Create and activate a virtual environment**:
@@ -194,17 +357,6 @@ olympic_archery/
 ## 📡 Hardware & LiDAR Integration (Optional)
 
 To convert any flat wall into a massive interactive target using an **LD19 360° LiDAR**:
-
-```
-+-------------------------------------------------------------+
-|                     149" Projection Wall                    |
-|  [Target 1]               [Target 2]            [Target 3]  |
-|                                                             |
-|                          (Laser Plane)                      |
-| <=========================================================> |
-|                 📡 LD19 LiDAR Sensor (COM7)                 |
-+-------------------------------------------------------------+
-```
 
 1. **Mounting**: Place the LD19 LiDAR sensor centered at the base or top of your projected area (default `Y = 38"` above floor level).
 2. **Configure LiDAR Settings**:
