@@ -1,0 +1,9 @@
+# ==============================================================================
+# Dependencies - Olympic Archery Arena
+# ==============================================================================
+
+# Web application server & REST APIs
+Flask>=3.0.0,<4.0.0
+
+# Serial communication for LD19 LiDAR hardware integration
+pyserial>=3.5,<4.0

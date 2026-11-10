@@ -1,0 +1,44 @@
+# ==============================================================================
+# Git Ignore - Olympic Archery Arena
+# ==============================================================================
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local SQLite Database (auto-generated on first run)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite3
+
+# Hardware Calibration & Local Configurations
+lidar_settings.json
+.env
+.env.local
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+
+# Editor & IDE Settings
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

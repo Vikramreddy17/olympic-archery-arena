@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  >
+
+  <title>Olympic Archery Arena</title>
+
+  <link
+    rel="stylesheet"
+    href="/static/style.css"
+  >
+</head>
+
+<body>
+<main id="app" class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">◎</span>
+      <span>
+        ARCHERY <b>ARENA</b>
+        <small>THE STADIUM CHALLENGE</small>
+      </span>
+    </div>
+
+    <nav class="top-actions">
+      <button id="btnHall" class="ghost">
+        🏆 Hall of Fame
+      </button>
+
+      <button id="btnSound" class="ghost">
+        ♫ SOUND OFF
+      </button>
+
+      <button id="btnFullscreen" class="ghost">
+        ⛶ Fullscreen
+      </button>
+
+      <button id="btnOperator" class="ghost">
+        ⚙ Operator
+      </button>
+    </nav>
+  </header>
+
+  <!-- HOME -->
+  <section class="screen" id="screenWelcome">
+    <div class="hero-grid">
+      <div class="hero-content">
+        <div class="eyebrow">
+          THE ULTIMATE STADIUM EXPERIENCE
+        </div>
+
+        <h1>
+          THE ROAD<br>
+          TO <em>GOLD.</em>
+        </h1>
+
+        <p>
+          Three targets. Twelve arrows. One champion.
+          Step into the arena and make every shot count.
+        </p>
+
+        <div class="hero-actions">
+          <button id="btnChallenge" class="btn primary xl">
+            START CHALLENGE ➜
+          </button>
+
+          <button id="btnWelcomeHall" class="btn outline xl">
+            HALL OF FAME
+          </button>
+        </div>
+
+        <div class="hero-stats">
+          <span><strong>03</strong>TARGETS</span>
+          <span><strong>12</strong>SHOTS</span>
+          <span><strong>90</strong>MAX SCORE</span>
+        </div>
+      </div>
+
+      <div class="hero-art">
+        <div class="orbit orbit1"></div>
+        <div class="orbit orbit2"></div>
+
+        <div class="hero-target">
+          <i></i><i></i><i></i><i></i>
+          <span>10</span>
+        </div>
+
+        <div class="arrow-art">➤</div>
+        <div class="art-label">PRECISION IS EVERYTHING</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLAYER NAME -->
+  <section class="screen hidden" id="screenName">
+    <div class="panel narrow center">
+      <div class="eyebrow">STEP 01 / 02</div>
+
+      <h2>ENTER THE ARENA</h2>
+      <p>Your journey to the podium starts here.</p>
+
+      <label for="playerName">PLAYER NAME</label>
+
+      <input
+        id="playerName"
+        maxlength="24"
+        autocomplete="off"
+        placeholder="Type your name"
+      >
+
+      <div id="nameError" class="form-error"></div>
+
+      <button id="btnNameNext" class="btn primary wide">
+        CONTINUE ➜
+      </button>
+
+      <button id="btnNameBack" class="text-button">
+        ← Back
+      </button>
+    </div>
+  </section>
+
+  <!-- DIFFICULTY -->
+  <section class="screen hidden" id="screenLevel">
+    <div class="panel wide-panel center">
+      <div class="eyebrow">STEP 02 / 02</div>
+
+      <h2>CHOOSE YOUR CHALLENGE</h2>
+      <p id="levelGreeting">Choose your difficulty.</p>
+
+      <div class="level-grid">
+        <button class="level-card" data-level="easy">
+          <span class="level-symbol">◉</span>
+          <b>ROOKIE</b>
+          <strong>EASY</strong>
+          <small>Extra-large target<br>10 seconds per shot</small>
+        </button>
+
+        <button class="level-card selected" data-level="medium">
+          <span class="level-symbol">✦</span>
+          <b>CONTENDER</b>
+          <strong>MEDIUM</strong>
+          <small>Large target<br>10 seconds per shot</small>
+        </button>
+
+        <button class="level-card" data-level="hard">
+          <span class="level-symbol">♛</span>
+          <b>CHAMPION</b>
+          <strong>HARD</strong>
+          <small>Precision target<br>10 seconds per shot</small>
+        </button>
+      </div>
+
+      <button id="btnLevelNext" class="btn primary large">
+        ENTER STADIUM ➜
+      </button>
+
+      <button id="btnLevelBack" class="text-button">
+        ← Change name
+      </button>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section class="screen hidden" id="screenGame">
+
+    <div class="game-hud">
+      <div class="hud-left">
+        <span id="hudMode" class="mode-tag">PRACTICE MODE</span>
+        <strong id="hudPlayer">PLAYER</strong>
+        <span id="hudRound">WARM UP · 3 SHOTS</span>
+      </div>
+
+      <div class="hud-center">
+        <span id="hudInstruction">
+          Hit the highlighted target
+        </span>
+
+        <div class="timer-block">
+          <span>SHOT TIME</span>
+
+          <div id="hudTimer" class="timer hidden">
+            10
+          </div>
+        </div>
+      </div>
+
+      <div class="hud-right">
+        <small>LIVE SCORE</small>
+        <strong id="hudScore">
+          0 <i>/ 90</i>
+        </strong>
+      </div>
+    </div>
+
+    <div class="arena-wrap" id="arenaWrap">
+      <canvas
+        id="arena"
+        width="1280"
+        height="720"
+        aria-label="Interactive Olympic archery stadium"
+      ></canvas>
+
+      <!-- 3 SECOND COUNTDOWN -->
+      <div id="countdown" class="countdown hidden">
+        <div id="countdownTitle">TARGET READY</div>
+        <strong id="countdownNumber">3</strong>
+      </div>
+
+      <!-- SCORE / TIME END -->
+      <div id="shotPopup" class="shot-popup hidden">
+        +10
+      </div>
+
+      <!-- PRACTICE COMPLETE / ROUND COMPLETE -->
+      <div id="gameOverlay" class="game-overlay hidden">
+        <div class="overlay-card">
+          <div id="overlayEyebrow" class="eyebrow">
+            PRACTICE COMPLETE
+          </div>
+
+          <h2 id="overlayTitle">
+            READY FOR THE CHALLENGE?
+          </h2>
+
+          <p id="overlayText">
+            Three targets are waiting.
+          </p>
+
+          <button id="btnOverlayContinue" class="btn primary large">
+            START CHALLENGE ➜
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="game-bottom">
+      <div class="round-tracker">
+        <span class="mini-label">TARGET PROGRESS</span>
+        <div id="roundPills" class="pills"></div>
+      </div>
+
+      <div class="shot-tracker">
+        <span class="mini-label">
+          CURRENT TARGET · BEST 3 COUNT
+        </span>
+
+        <div id="shotSlots" class="slots"></div>
+      </div>
+
+      <div class="bottom-right">
+        <span id="gameMessage">
+          Aim for the gold.
+        </span>
+
+        <button id="btnQuit" class="ghost danger">
+          Exit game
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="screen hidden" id="screenResults">
+    <div class="results-wrap">
+      <div class="eyebrow">
+        FINAL RESULTS · STADIUM CEREMONY
+      </div>
+
+      <div id="confetti" class="confetti"></div>
+      <div class="trophy">🏆</div>
+
+      <h2 id="resultHeading">
+        AMAZING PERFORMANCE!
+      </h2>
+
+      <p id="resultPlayer">PLAYER · MEDIUM</p>
+
+      <div class="big-score">
+        <span id="resultScore">0</span>
+        <small>/ 90 POINTS</small>
+      </div>
+
+      <div class="result-metrics">
+        <div>
+          <small>RANK</small>
+          <strong id="resultRank">#—</strong>
+        </div>
+
+        <div>
+          <small>HIT RATE</small>
+          <strong id="resultAccuracy">0%</strong>
+        </div>
+
+        <div>
+          <small>PERFECT 10s</small>
+          <strong id="resultTens">0</strong>
+        </div>
+      </div>
+
+      <div id="resultRounds" class="result-rounds"></div>
+      <p id="resultSaveStatus" class="save-status"></p>
+
+      <div class="result-actions">
+        <button id="btnPlayAgain" class="btn primary large">
+          PLAY AGAIN ➜
+        </button>
+
+        <button id="btnResultHall" class="btn outline large">
+          HALL OF FAME
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HALL OF FAME -->
+  <section class="screen hidden" id="screenHall">
+    <div class="hall-wrap">
+      <div class="eyebrow">LEGENDS OF THE ARENA</div>
+      <h2>HALL OF <em>FAME</em></h2>
+      <p>Every legend starts with a single arrow.</p>
+
+      <div class="hall-filters">
+        <button data-filter="all" class="active">ALL</button>
+        <button data-filter="easy">EASY</button>
+        <button data-filter="medium">MEDIUM</button>
+        <button data-filter="hard">HARD</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>RANK</th>
+              <th>ATHLETE</th>
+              <th>LEVEL</th>
+              <th>SCORE</th>
+              <th>HIT RATE</th>
+              <th>DATE</th>
+            </tr>
+          </thead>
+
+          <tbody id="leaderboardBody">
+            <tr>
+              <td colspan="6">Loading…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="hall-footer">
+        <span id="sessionCount">
+          0 sessions completed
+        </span>
+
+        <button id="btnHallPlay" class="btn primary">
+          NEW CHALLENGE ➜
+        </button>
+
+        <button id="btnHallBack" class="btn outline">
+          BACK
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- OPERATOR CONTROLS -->
+  <div id="operatorModal" class="modal hidden">
+    <div class="modal-card">
+
+      <button
+        id="btnCloseModal"
+        class="modal-close"
+        aria-label="Close"
+      >✕</button>
+
+      <div class="eyebrow">OPERATOR CONTROLS</div>
+
+      <h2>ARENA CONTROL</h2>
+      <p>Manage local sessions and input calibration.</p>
+
+      <label for="adminPin">ADMIN PIN</label>
+
+      <input
+        id="adminPin"
+        type="password"
+        placeholder="Enter PIN"
+        autocomplete="off"
+      >
+
+      <button id="btnReset" class="btn danger-fill wide">
+        RESET HALL OF FAME
+      </button>
+
+      <div id="adminStatus" class="form-error"></div>
+
+      <hr>
+
+      <label class="toggle-row">
+        <input id="calibrateToggle" type="checkbox">
+        Show LiDAR calibration grid
+      </label>
+
+      <label class="toggle-row">
+        <input id="lidarToggle" type="checkbox">
+        Enable LD19 input
+      </label>
+
+      <p class="modal-note">
+        The projected surface must be calibrated against
+        the 149 × 80 inch physical wall.
+        LD19 detects objects crossing its scan plane.
+        It is not a validated flying-arrow impact detector.
+      </p>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+</main>
+
+<script src="/static/game.js"></script>
+</body>
+</html>
