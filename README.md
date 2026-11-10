@@ -5,6 +5,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/Vikramreddy17/olympic-archery-arena/actions"><img src="https://github.com/Vikramreddy17/olympic-archery-arena/actions/workflows/ci.yml/badge.svg" alt="CI Status" /></a>
   <a href="#-features"><img src="https://img.shields.io/badge/Platform-Web%20%7C%20Interactive%20Wall-008ecc?style=for-the-badge" alt="Platform" /></a>
   <a href="#-hardware--lidar-integration"><img src="https://img.shields.io/badge/Hardware-LD19%20LiDAR%20Laser-f7cc73?style=for-the-badge&logoColor=black" alt="Hardware" /></a>
   <a href="https://flask.palletsprojects.com/"><img src="https://img.shields.io/badge/Backend-Flask%203.x-black?style=for-the-badge&logo=flask" alt="Backend" /></a>
@@ -228,24 +229,39 @@ The coordinate transformation pipeline maps physical inches into normalized unit
 ---
 
 ### 5. Database Entity Relationship Diagram (SQLite WAL)
-The database tracks individual sessions, detailed round-by-round shot telemetry, and leaderboard rankings:
+The database tracks individual athlete sessions, detailed round-by-round shot telemetry, and leaderboard rankings:
 
 ```mermaid
 erDiagram
     SCORES {
-        INTEGER id PK "Auto-incrementing primary key"
-        TEXT player "Athlete name (1 to 24 characters)"
-        TEXT level "Difficulty: easy | medium | hard"
-        INTEGER total "Sum of best 3 shots per target (0 to 90)"
-        REAL accuracy "Hit percentage across all 12 shots (0.0 to 100.0%)"
-        INTEGER tens "Count of perfect 10-ring bullseyes"
-        TEXT shots_json "Full 3x4 round shots array in JSON"
-        TEXT created_at "ISO-8601 UTC timestamp"
+        integer id PK "Primary key (AUTOINCREMENT)"
+        string player "Athlete name (1 to 24 chars)"
+        string level "Difficulty: easy | medium | hard"
+        integer total "Best 3 of 4 shots per target (0 to 90)"
+        float accuracy "Hit percentage (0.0 to 100.0%)"
+        integer tens "Count of perfect 10-ring bullseyes"
+        string shots_json "Full 3x4 round shots array in JSON"
+        string created_at "ISO-8601 UTC timestamp"
     }
+```
 
-    INDEXES {
-        idx_scores "INDEX on (level, total DESC, tens DESC)"
-    }
+#### Database Schema & Indexes
+
+```sql
+CREATE TABLE IF NOT EXISTS scores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player TEXT NOT NULL,
+    level TEXT NOT NULL,
+    total INTEGER NOT NULL,
+    accuracy REAL NOT NULL,
+    tens INTEGER NOT NULL,
+    shots_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+-- Fast leaderboard sorting index
+CREATE INDEX IF NOT EXISTS idx_scores 
+ON scores (level, total DESC, tens DESC);
 ```
 
 ---
